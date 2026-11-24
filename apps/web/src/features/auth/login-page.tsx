@@ -2,13 +2,23 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema } from '@lee/shared';
+import type { AdminSetupStatus } from '@lee/shared';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '@/lib/api';
 import { ShieldCheck, ScanBarcode, ReceiptText } from 'lucide-react';
-import { Navigate } from 'react-router';
+import { Link, Navigate } from 'react-router';
 import { useAuth } from './auth-context';
 import { Button } from '@/components/ui/button';
 export function LoginPage() {
   const { user, login } = useAuth();
   const [error, setError] = useState('');
+  const setup = useQuery({
+    queryKey: ['admin-setup'],
+    queryFn: () => api<AdminSetupStatus>('/auth/setup'),
+    enabled: !user,
+    retry: false,
+    staleTime: 0,
+  });
   const {
     register,
     handleSubmit,
@@ -99,7 +109,15 @@ export function LoginPage() {
               {isSubmitting ? 'Signing in…' : 'Sign in'}
             </Button>
           </form>
-          <p className="login-help">Need access? Contact your shop administrator.</p>
+          <p className="login-help">
+            {setup.data?.required ? (
+              <Link className="setup-link" to="/setup">
+                Create your administrator account
+              </Link>
+            ) : (
+              'Need access? Contact your shop administrator.'
+            )}
+          </p>
         </div>
       </main>
     </div>

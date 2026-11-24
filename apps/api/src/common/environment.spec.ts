@@ -19,4 +19,12 @@ describe('environment configuration', () => {
       'WEB_ORIGIN must use HTTPS in production',
     );
   });
+
+  it('keeps setup disabled by default and rejects short setup keys', () => {
+    expect(validateEnvironment(valid).INITIAL_ADMIN_SETUP_TOKEN).toBeUndefined();
+    expect(
+      validateEnvironment({ ...valid, INITIAL_ADMIN_SETUP_TOKEN: '' }).INITIAL_ADMIN_SETUP_TOKEN,
+    ).toBe('');
+    expect(() => validateEnvironment({ ...valid, INITIAL_ADMIN_SETUP_TOKEN: 'short' })).toThrow();
+  });
 });

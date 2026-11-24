@@ -61,6 +61,8 @@ docker compose --env-file deploy/.env -f deploy/compose.yml ps
 
 Open `https://YOUR_HOSTNAME`, sign in using the seed accounts, and configure shop settings and real products/opening stock. Seeding preserves existing accounts and stock; changing seed passwords does not reset existing database accounts. Use the Users page to reset passwords after initialization.
 
+Alternatively, to create the first admin in the POS website, skip the `npm run db:seed` command above. Set the optional private `INITIAL_ADMIN_SETUP_TOKEN` (32–256 random characters) in `deploy/.env` before starting the API. After migrations and startup, open `/setup`, enter the key and your chosen name/email/password, then sign in. Remove the setup token and recreate the API after registration. This flow is available only when no admin account exists. See [first-admin setup](../README.md#create-the-first-admin-inside-the-pos). For Vercel, set the token on the backend project in its dashboard instead of this Docker environment file.
+
 Run [the cashier trial](../docs/cashier-trial.md) before using real transactions. Check that HTTP redirects to HTTPS, the certificate is trusted, `/api/health` responds, the app installs, and an offline sale syncs exactly once. Only HTTPS or a local-loopback development origin can register a service worker.
 
 ## Updates and recovery

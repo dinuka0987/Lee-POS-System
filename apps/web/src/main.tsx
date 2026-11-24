@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Route, Routes } from 'react-router';
 import { LoginPage } from './features/auth/login-page';
+import { AdminSetupPage } from './features/auth/admin-setup-page';
 import { AuthProvider } from './features/auth/auth-context';
 import { AppLayout } from './components/app-layout';
 import { CheckoutPage } from './features/checkout/checkout-page';
@@ -28,6 +29,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/setup" element={<AdminSetupPage />} />
             <Route element={<AppLayout />}>
               <Route index element={<CheckoutPage />} />
               <Route path="products" element={<ProductsPage />} />

@@ -9,6 +9,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { PrismaService } from './common/prisma.service';
 import { AuthGuard } from './auth/auth.guard';
 import { AuthController } from './auth/auth.controller';
+import { AdminSetupController } from './auth/admin-setup.controller';
 import { ProductsController } from './products/products.controller';
 import { SalesController } from './sales/sales.controller';
 import { SalesService } from './sales/sales.service';
@@ -43,6 +44,7 @@ import { SyncController } from './sync/sync.controller';
   controllers: [
     HealthController,
     AuthController,
+    AdminSetupController,
     ProductsController,
     SalesController,
     ReportsController,

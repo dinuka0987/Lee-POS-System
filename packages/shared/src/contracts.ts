@@ -1,5 +1,21 @@
 import { z } from 'zod';
 export const loginSchema = z.object({ email: z.email(), password: z.string().min(1).max(128) });
+export const adminSetupSchema = z
+  .object({
+    name: z.string().trim().min(1, 'Enter your name').max(80),
+    email: z.string().trim().toLowerCase().max(254).pipe(z.email()),
+    password: z
+      .string()
+      .min(12, 'Use at least 12 characters')
+      .max(72)
+      .refine(
+        (value) => new TextEncoder().encode(value).length <= 72,
+        'Password must be at most 72 UTF-8 bytes',
+      ),
+    setupKey: z.string().min(32, 'Enter the setup key supplied by your deployment owner').max(256),
+  })
+  .strict();
+export type AdminSetupStatus = { required: boolean; enabled: boolean };
 export type User = {
   id: string;
   name: string;

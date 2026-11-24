@@ -8,6 +8,11 @@ const environmentSchema = z.object({
   WEB_ORIGIN: z.url().default('http://localhost:5173'),
   DATABASE_URL: z.string().regex(/^postgres(ql)?:\/\//),
   JWT_SECRET: z.string().min(32),
+  INITIAL_ADMIN_SETUP_TOKEN: z
+    .string()
+    .max(256)
+    .refine((value) => value === '' || value.length >= 32)
+    .optional(),
   BRANCH_ID: z.uuid(),
 });
 

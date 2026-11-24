@@ -2263,3 +2263,64 @@
     max-width: none;
   }
 }
+.admin-setup-shell {
+  height: 100dvh;
+  padding: 16px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.login-form-card.admin-setup-card {
+  width: 100%;
+  max-width: 680px;
+  max-height: calc(100dvh - 32px);
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  margin: 0;
+}
+.admin-setup-card h1 {
+  font-size: 28px;
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: -1px;
+}
+.admin-setup-card form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.admin-setup-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 18px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 6px;
+}
+.admin-setup-fields .field {
+  margin: 0;
+}
+.admin-setup-fields small {
+  line-height: 1.4;
+}
+.admin-setup-key {
+  grid-column: 1 / -1;
+}
+.admin-setup-card .login-submit,
+.admin-setup-card .login-help {
+  flex-shrink: 0;
+}
+.setup-link {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+@media screen and (max-width: 540px) {
+  .admin-setup-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .admin-setup-card h1 {
+    font-size: 24px;
+  }
+}

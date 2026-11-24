@@ -17,6 +17,40 @@ async function scan(page: Page) {
     '1',
   );
 }
+test('owner registers the first administrator in the POS and registration then closes', async ({
+  page,
+}) => {
+  await page.goto('/login');
+  await page.getByRole('link', { name: 'Create your administrator account' }).click();
+  await expect(page.getByRole('heading', { name: 'Create your admin account' })).toBeVisible();
+  await page.getByLabel('Your name', { exact: true }).fill('Browser Test Admin');
+  await page.getByLabel('Email address').fill(process.env.E2E_ADMIN_EMAIL!);
+  await page.getByLabel('Password', { exact: true }).fill(process.env.E2E_PASSWORD!);
+  await page.getByLabel('Confirm password').fill('does-not-match');
+  await page.getByLabel('Setup key', { exact: true }).fill(process.env.E2E_SETUP_KEY!);
+  await page.getByRole('button', { name: 'Create admin account', exact: true }).click();
+  await expect(page.getByText('Passwords must match')).toBeVisible();
+  await page.getByLabel('Confirm password').fill(process.env.E2E_PASSWORD!);
+  await page.setViewportSize({ width: 390, height: 667 });
+  await expect(
+    page.getByRole('button', { name: 'Create admin account', exact: true }),
+  ).toBeInViewport();
+  await page.screenshot({ path: 'test-results/lee-admin-setup-mobile.png' });
+  await page.getByRole('button', { name: 'Create admin account', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Your account is ready' })).toBeVisible();
+  await page.getByRole('link', { name: 'Continue to sign in' }).click();
+  await expect(page.getByRole('link', { name: 'Create your administrator account' })).toHaveCount(
+    0,
+  );
+  await page.goto('/setup');
+  await expect(
+    page.getByText('An administrator account already exists.', { exact: false }),
+  ).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Create admin account', exact: true })).toHaveCount(
+    0,
+  );
+});
+
 test('cash checkout: barcode, quantity, change, receipt, and browser print', async ({ page }) => {
   await page.addInitScript(() => {
     window.print = () => document.documentElement.setAttribute('data-print-requested', 'yes');

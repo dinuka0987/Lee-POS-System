@@ -8,7 +8,9 @@ import { prepareTestDatabase, runNode } from './test-database.mjs';
 const require = createRequire(import.meta.url);
 let db;
 const userId = randomUUID();
-const adminId = randomUUID();
+let adminId = randomUUID();
+const adminEmail = `browser-admin-${adminId}@example.test`;
+const setupKey = randomUUID() + randomUUID();
 const categoryId = randomUUID();
 const productId = randomUUID();
 const branchId = randomUUID();
@@ -18,22 +20,14 @@ try {
   const password = randomUUID();
   const email = `browser-${userId}@example.test`;
   db = new PrismaClient({ adapter: new PrismaPg({ connectionString: environment.DATABASE_URL }) });
+  if (await db.user.count({ where: { role: 'admin' } }))
+    throw new Error('Browser setup tests require a test database with no existing administrators');
   await db.user.create({
     data: {
       id: userId,
       email,
       name: 'Browser Test Cashier',
       role: 'cashier',
-      passwordHash: await hash(password, 4),
-    },
-  });
-  const adminEmail = `browser-admin-${adminId}@example.test`;
-  await db.user.create({
-    data: {
-      id: adminId,
-      email: adminEmail,
-      name: 'Browser Test Admin',
-      role: 'admin',
       passwordHash: await hash(password, 4),
     },
   });
@@ -61,6 +55,8 @@ try {
     {
       ...environment,
       JWT_SECRET: randomUUID() + randomUUID(),
+      INITIAL_ADMIN_SETUP_TOKEN: setupKey,
+      E2E_SETUP_KEY: setupKey,
       E2E_EMAIL: email,
       E2E_ADMIN_EMAIL: adminEmail,
       E2E_CATEGORY_ID: categoryId,
@@ -81,6 +77,11 @@ try {
   process.exitCode = 1;
 } finally {
   if (db) {
+    const registeredAdmin = await db.user.findUnique({
+      where: { email: adminEmail },
+      select: { id: true },
+    });
+    if (registeredAdmin) adminId = registeredAdmin.id;
     const ids = (
       await db.sale.findMany({
         where: { cashierId: { in: [userId, adminId] } },
