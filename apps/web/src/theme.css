@@ -1,0 +1,55 @@
+/* CALM / KIT palette. Darker ink variants keep small text and actions at AA contrast. */
+@font-face {
+  font-family: 'Inter';
+  src: url('/InterVariable.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+:root {
+  --color-sage: #6b7f6e;
+  --color-moss: #a7b8a7;
+  --color-mist: #d9e1d9;
+  --color-ivory: #f4efe8;
+  --color-sand: #c9bdaf;
+  --color-ink: #1f2a22;
+  --color-muted-reference: #6f7a72;
+  --color-muted-ink: #56635a;
+  --color-sage-ink: #526856;
+  --color-sage-action: #5c725f;
+  --color-sage-hover: #526856;
+  --color-terracotta: #b5705c;
+  --color-danger-ink: #8b4435;
+  --color-danger-fill: #eee0d8;
+  --color-warning-ink: #735b32;
+  --color-warning-fill: #eee5d6;
+  --color-white: #fff;
+  --color-surface: var(--color-ivory);
+  --color-surface-soft: #eeeae1;
+  --color-surface-hover: #e7ece3;
+  --color-divider: #ddd5c9;
+  --color-placeholder: #626b60;
+  --color-receipt-ink: #222;
+  --color-receipt-rule: #777;
+  --color-overlay: rgb(31 42 34 / 38%);
+  --color-highlight: rgb(255 255 255 / 80%);
+  --color-highlight-soft: rgb(255 255 255 / 45%);
+  --color-highlight-faint: rgb(255 255 255 / 14%);
+  --color-highlight-veil: rgb(255 255 255 / 5%);
+  --color-shadow: rgb(107 127 110 / 12%);
+  --shadow-card: 0 10px 30px var(--color-shadow), inset 0 1px 0 var(--color-highlight);
+  --shadow-control: 0 5px 14px rgb(107 127 110 / 10%), inset 0 1px 0 var(--color-highlight);
+  --shadow-hover: 0 12px 28px rgb(107 127 110 / 18%), inset 0 1px 0 var(--color-highlight);
+  --shadow-pressed: inset 0 2px 5px rgb(31 42 34 / 12%);
+  --shadow-dialog: 0 28px 80px rgb(31 42 34 / 20%), inset 0 1px 0 var(--color-highlight);
+  --shadow-focus: 0 0 0 5px rgb(167 184 167 / 24%);
+  --radius-card: 28px;
+  --radius-small-card: 24px;
+  --radius-notice: 16px;
+  --radius-pill: 999px;
+  --motion-ui: 180ms ease-out;
+  --background: var(--color-surface);
+  --foreground: var(--color-ink);
+  --primary: var(--color-sage-action);
+}

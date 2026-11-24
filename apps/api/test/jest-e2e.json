@@ -1,0 +1,7 @@
+{
+  "rootDir": "..",
+  "setupFiles": ["<rootDir>/test/environment.cjs"],
+  "testRegex": "test/.*\\.e2e-spec\\.ts$",
+  "transform": { "^.+\\.ts$": ["ts-jest", { "tsconfig": "<rootDir>/tsconfig.json" }] },
+  "testEnvironment": "node"
+}

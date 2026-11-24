@@ -1,0 +1,52 @@
+{
+  "name": "lee-pos",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Lee retail point of sale monorepo",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=24.11.0 <25",
+    "npm": ">=11"
+  },
+  "overrides": {
+    "glob@>=9.0.0": "14.0.2",
+    "@prisma/config": {
+      "effect": "3.22.5"
+    }
+  },
+  "scripts": {
+    "dev": "npm run build -w @lee/shared && concurrently -k -n shared,api,web -c yellow,cyan,green \"npm run dev -w @lee/shared\" \"npm run dev -w @lee/api\" \"npm run dev -w @lee/web\"",
+    "build": "npm run build -w @lee/shared && npm run build -w @lee/api && npm run build -w @lee/web",
+    "typecheck": "npm run build -w @lee/shared && npm run typecheck --workspaces --if-present && tsc -p tsconfig.tools.json --noEmit",
+    "lint": "eslint . --max-warnings=0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "npm run build -w @lee/shared && npm run test --workspaces --if-present",
+    "test:api": "npm run build -w @lee/shared && npm run test:e2e -w @lee/api",
+    "db:up": "docker compose up -d --wait postgres",
+    "db:down": "docker compose down",
+    "env:init": "npm run env:init -w @lee/api",
+    "db:generate": "npm run db:generate -w @lee/api",
+    "db:migrate": "npm run db:migrate -w @lee/api",
+    "db:seed": "npm run db:seed -w @lee/api",
+    "db:setup": "npm run env:init && npm run db:generate && npm run db:migrate && npm run db:seed",
+    "test:e2e": "npm run build && npm run test:browser -w @lee/api"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.65.1",
+    "@types/node": "^24.0.0",
+    "concurrently": "^9.2.0",
+    "eslint": "^10.15.0",
+    "eslint-config-prettier": "^10.1.0",
+    "eslint-plugin-react-hooks": "^7.0.0",
+    "eslint-plugin-react-refresh": "^0.5.8",
+    "globals": "^16.5.0",
+    "prettier": "^3.6.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.46.0"
+  }
+}

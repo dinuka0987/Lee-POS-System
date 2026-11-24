@@ -1,0 +1,177 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  cashier
+  admin
+}
+
+enum MovementType {
+  sale
+  receive
+  adjust
+  return
+}
+
+enum PaymentMethod {
+  cash
+  card
+}
+
+enum SaleStatus {
+  completed
+  voided
+}
+
+model User {
+  id           String @id @default(uuid()) @db.Uuid
+  name         String
+  email        String @unique
+  passwordHash String @map("password_hash")
+  role         Role
+  active       Boolean @default(true)
+  authVersion  Int @default(0) @map("auth_version")
+  sales        Sale[]
+  movements    StockMovement[]
+  auditLogs    AuditLog[]
+  @@map("users")
+}
+
+model Category {
+  id String @id @default(uuid()) @db.Uuid
+  name String @unique
+  products Product[]
+  @@map("categories")
+}
+
+model Product {
+  id String @id @default(uuid()) @db.Uuid
+  sku String @unique
+  barcode String @unique
+  name String
+  categoryId String @map("category_id") @db.Uuid
+  priceCents Int @map("price_cents")
+  taxRateBps Int @default(0) @map("tax_rate")
+  active Boolean @default(true)
+  category Category @relation(fields: [categoryId], references: [id])
+  stockLevels StockLevel[]
+  movements StockMovement[]
+  saleItems SaleItem[]
+  @@index([categoryId, active])
+  @@map("products")
+}
+
+model StockLevel {
+  productId String @map("product_id") @db.Uuid
+  branchId String @map("branch_id") @db.Uuid
+  quantity Int @default(0)
+  product Product @relation(fields: [productId], references: [id])
+  @@id([productId, branchId])
+  @@map("stock_levels")
+}
+
+model StockMovement {
+  id String @id @default(uuid()) @db.Uuid
+  productId String @map("product_id") @db.Uuid
+  branchId String @map("branch_id") @db.Uuid
+  type MovementType
+  qty Int
+  refId String @map("ref_id") @db.Uuid
+  userId String @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  product Product @relation(fields: [productId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+  @@index([productId, branchId, createdAt])
+  @@map("stock_movements")
+}
+
+model Sale {
+  id String @id @db.Uuid
+  branchId String @map("branch_id") @db.Uuid
+  cashierId String @map("cashier_id") @db.Uuid
+  subtotalCents Int @map("subtotal_cents")
+  taxCents Int @map("tax_cents")
+  discountCents Int @default(0) @map("discount_cents")
+  totalCents Int @map("total_cents")
+  status SaleStatus @default(completed)
+  requestHash String @map("request_hash")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  receivedAt DateTime @default(now()) @map("received_at") @db.Timestamptz(3)
+  voidedAt DateTime? @map("voided_at") @db.Timestamptz(3)
+  voidReason String? @map("void_reason")
+  receiptSettings Json? @map("receipt_settings") @db.JsonB
+  cashier User @relation(fields: [cashierId], references: [id])
+  items SaleItem[]
+  payments Payment[]
+  @@index([branchId, createdAt])
+  @@map("sales")
+}
+
+model SaleItem {
+  id String @id @default(uuid()) @db.Uuid
+  saleId String @map("sale_id") @db.Uuid
+  productId String? @map("product_id") @db.Uuid
+  productName String @map("product_name")
+  qty Int
+  unitPriceCents Int @map("unit_price_cents")
+  taxCents Int @map("tax_cents")
+  discountCents Int @default(0) @map("discount_cents")
+  sale Sale @relation(fields: [saleId], references: [id])
+  product Product? @relation(fields: [productId], references: [id])
+  @@index([saleId])
+  @@map("sale_items")
+}
+
+model Payment {
+  id String @id @default(uuid()) @db.Uuid
+  saleId String @map("sale_id") @db.Uuid
+  method PaymentMethod
+  amountCents Int @map("amount_cents")
+  tenderedCents Int @map("tendered_cents")
+  reference String?
+  sale Sale @relation(fields: [saleId], references: [id])
+  @@index([saleId])
+  @@map("payments")
+}
+
+model AuditLog {
+  id String @id @default(uuid()) @db.Uuid
+  userId String @map("user_id") @db.Uuid
+  branchId String? @map("branch_id") @db.Uuid
+  action String
+  entity String
+  entityId String @map("entity_id") @db.Uuid
+  details Json @db.JsonB
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  user User @relation(fields: [userId], references: [id])
+  @@index([entity, entityId])
+  @@index([branchId, createdAt])
+  @@map("audit_logs")
+}
+
+model ShopSetting {
+  branchId String @id @map("branch_id") @db.Uuid
+  name String @default("Lee")
+  address String @default("")
+  phone String @default("")
+  receiptFooter String @default("Thank you for shopping at Lee.") @map("receipt_footer")
+  paperWidthMm Int @default(80) @map("paper_width_mm")
+  autoPrint Boolean @default(false) @map("auto_print")
+  @@map("shop_settings")
+}
+
+model DeveloperContact {
+  branchId String @id @map("branch_id") @db.Uuid
+  name String @default("")
+  email String @default("")
+  mobile String @default("")
+  facebookUrl String @default("") @map("facebook_url")
+  websiteUrl String @default("") @map("website_url")
+  supportHours String @default("") @map("support_hours")
+  @@map("developer_contacts")
+}
