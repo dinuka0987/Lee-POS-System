@@ -20,6 +20,13 @@ async function scan(page: Page) {
 test('owner registers the first administrator in the POS and registration then closes', async ({
   page,
 }) => {
+  await page.route('**/api/auth/setup', (route) => route.abort());
+  await page.goto('/setup');
+  await expect(page.getByRole('alert')).toContainText('Cannot connect to Lee’s server');
+  await expect(page.getByRole('alert')).not.toContainText('sale');
+  await page.unroute('**/api/auth/setup');
+  await page.getByRole('button', { name: 'Retry', exact: true }).click();
+  await expect(page.getByLabel('Your name', { exact: true })).toBeVisible();
   await page.goto('/login');
   await page.getByRole('link', { name: 'Create your administrator account' }).click();
   await expect(page.getByRole('heading', { name: 'Create your admin account' })).toBeVisible();

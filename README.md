@@ -2,7 +2,171 @@
 
 Lee's retail POS uses React/Vite, NestJS, Prisma, and PostgreSQL in an npm-workspace monorepo. Money is integer **LKR cents**; shared utilities handle pricing, tax, change, and stock validation.
 
-Implemented: admin/cashier login, products/categories, barcode checkout, cash and external-terminal payment recording, receipt printing, sales history/reprints, daily reports, full-sale voids/audit, cashier account management, shop/print settings, and offline PWA checkout with a durable sync queue. Production deployment files are prepared; no live site has been published.
+Implemented: first-admin website registration, admin/cashier login, products/categories, barcode checkout, cash and external-terminal payment recording, receipt printing, sales history/reprints, daily reports, full-sale voids/audit, cashier account management, shop/print settings, and offline PWA checkout with a durable sync queue.
+
+For the deployed Vercel installation, follow [Vercel configuration and admin setup](#vercel-configuration-and-admin-setup). For a local demonstration, use [Run locally](#run-locally). The separate [Docker/VPS deployment guide](deploy/README.md) applies to a Linux server, not Vercel.
+
+## Vercel configuration and admin setup
+
+### 1. Understand the connections
+
+```text
+Cashier browser → React frontend on Vercel → NestJS backend on Vercel → Neon PostgreSQL
+```
+
+The backend alone connects to PostgreSQL. The browser keeps its offline catalog and queued sales in IndexedDB. Cloud data and browser data are separate; sync all existing tills before changing domains because browser storage does not transfer to a different domain.
+
+The Lee addresses configured during setup are:
+
+| Component                 | Address                                      |
+| ------------------------- | -------------------------------------------- |
+| Frontend / shop interface | https://lee-pos-system-nhwe.vercel.app       |
+| Backend                   | https://lee-pos-system.vercel.app            |
+| Backend API base          | https://lee-pos-system.vercel.app/api        |
+| First-admin setup page    | https://lee-pos-system-nhwe.vercel.app/setup |
+
+Replace these addresses if you deploy another copy or add a custom domain. Vercel configuration belongs in each project's dashboard. Root `.env` is for local development; `deploy/.env` is for Docker. Editing either local file does not update an existing Vercel deployment.
+
+### 2. Prepare the repository and database
+
+Use Node.js 24.11+ and npm 11+. Upload the contents of `pos-system` as the GitHub repository root, so `apps`, `packages`, and `package.json` are at its top level. Keep the repository private and verify `.env`, `deploy/.env`, `node_modules`, passwords, and tokens are excluded from commits. Push updated source before deploying it.
+
+Create a Neon PostgreSQL project/database, directly through Neon or a Vercel database integration. In Neon's **Connect** dialog, select the intended branch, database and role. Copy two versions of the connection string privately:
+
+| Connection            | Where to use it                       |
+| --------------------- | ------------------------------------- |
+| Pooled URL            | Backend Vercel `DATABASE_URL`         |
+| Direct / unpooled URL | Migration commands from your terminal |
+
+Turn connection pooling on/off in the provider's dialog to obtain the two URLs; pooled Neon hostnames contain `-pooler`. Preserve the provider's SSL/query parameters. Cloud URLs use the provider hostname, not `localhost` or Docker hostname `postgres`. A typical placeholder URL is `postgresql://USER:PASSWORD@PROVIDER_HOST/DATABASE?sslmode=require`. See [Neon connection pooling](https://neon.com/docs/connect/connection-pooling).
+
+### 3. Create the two Vercel projects
+
+Import the same repository twice. Use the settings below and enable **Include source files outside of the Root Directory in the Build Step** on both projects so they can access `packages/shared` and the workspace files.
+
+| Setting          | Backend project      | Frontend project     |
+| ---------------- | -------------------- | -------------------- |
+| Root Directory   | `apps/api`           | `apps/web`           |
+| Framework Preset | NestJS               | Vite                 |
+| Node.js version  | `24.x`               | `24.x`               |
+| Install Command  | `cd ../.. && npm ci` | `cd ../.. && npm ci` |
+| Output Directory | Framework default    | `dist`               |
+
+Backend Build Command:
+
+```sh
+cd ../.. && npm run db:generate && npm run build -w @lee/shared && npm run build -w @lee/api
+```
+
+Frontend Build Command:
+
+```sh
+cd ../.. && npm run build -w @lee/shared && npm run build -w @lee/web
+```
+
+Keep the SPA rewrite in `apps/web/vercel.json`; it allows direct navigation and refresh on `/setup`, `/products`, and other React routes. Framework references: [NestJS on Vercel](https://vercel.com/docs/frameworks/backend/nestjs), [Vite on Vercel](https://vercel.com/docs/frameworks/frontend/vite), [shared monorepo source](https://vercel.com/docs/monorepos/monorepo-faq).
+
+### 4. Configure the backend environment
+
+Open the **backend project → Settings → Environment Variables → Add Environment Variable**. Save each value for **Production**. Use private Secret variables for database credentials, JWT secret and setup token where that option is offered. Do not add surrounding quotes to dashboard values.
+
+| Variable                    | Value / purpose                                                                                         |
+| --------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `NODE_ENV`                  | `production`                                                                                            |
+| `API_HOST`                  | `0.0.0.0`                                                                                               |
+| `API_PORT`                  | `3000`                                                                                                  |
+| `TRUST_PROXY`               | `1`                                                                                                     |
+| `DATABASE_URL`              | Complete private Neon pooled connection string                                                          |
+| `JWT_SECRET`                | Private random value of at least 32 characters; keep stable between deployments                         |
+| `BRANCH_ID`                 | Intended shop UUID, e.g. `00000000-0000-4000-8000-000000000001`; preserve it for an existing shop       |
+| `WEB_ORIGIN`                | `https://lee-pos-system-nhwe.vercel.app` — frontend origin, without `/api`, page path or trailing slash |
+| `INITIAL_ADMIN_SETUP_TOKEN` | Temporary private random key of 32–256 characters, needed only to create the first admin                |
+
+Generate random values locally with a password manager or this command. Run it separately for the JWT secret and setup key; use different values and keep them private:
+
+```powershell
+node -e "console.log(require('node:crypto').randomBytes(48).toString('hex'))"
+```
+
+The setup key authorizes first-time registration. It is not your login password, a database password, or the JWT secret. Never put these secrets in `VITE_` variables, source code, screenshots, chat, or GitHub. If a database credential has been exposed, reset the provider role's password and update every consumer of its URL.
+
+`ADMIN_PASSWORD`, `CASHIER_PASSWORD` and `SEED_SAMPLE_PRODUCTS` are seed-script configuration, not required for website admin registration. Choose the admin email/password in the POS form and add cashier accounts afterward under Users.
+
+### 5. Configure the frontend environment
+
+Open the **frontend project's** environment variables and add:
+
+```dotenv
+VITE_API_BASE_URL=https://lee-pos-system.vercel.app/api
+```
+
+The value must include `/api`; it must not end with `/health` or `/auth/setup`. This public backend address is safe to expose. If Vercel warns about its public framework prefix, keep `VITE_` and use **Config**, not Secret, for this variable. The frontend must not receive `DATABASE_URL`, `JWT_SECRET`, the setup token, or account passwords.
+
+Use the intended production addresses in these settings. Preview deployments need their own allowed frontend origin and a separate test database; do not connect arbitrary previews to real shop data. Ensure intended production users can reach both projects without an intervening Vercel login page; Lee's own login protects POS access.
+
+### 6. Apply database migrations once
+
+Migrations create/update database tables. Website registration creates the account afterward; **do not run `db:seed` or `db:setup` for this production registration flow**. Those commands create seed accounts, and `db:setup` can add sample products. Preserve existing shop data and take a backup before upgrading it.
+
+Open a new PowerShell terminal in `pos-system`. Stop a running local dev server with Ctrl+C before reinstalling dependencies. On a fresh checkout or after an interrupted install, run:
+
+```powershell
+npm.cmd ci
+if ($LASTEXITCODE -ne 0) { throw 'Dependency installation failed. Stop here.' }
+```
+
+Then set the current direct cloud URL privately and run:
+
+```powershell
+$env:DATABASE_URL = 'YOUR_CURRENT_NEON_DIRECT_CONNECTION_STRING'
+
+npm.cmd run db:generate
+if ($LASTEXITCODE -ne 0) { throw 'Prisma generation failed. Stop here.' }
+
+npm.cmd run db:migrate
+if ($LASTEXITCODE -ne 0) { throw 'Database migration failed. Stop here.' }
+```
+
+Replace the placeholder before running. Do not paste credentials into support messages. Confirm the command reports successful migrations or no pending migrations, then close this terminal so later local commands do not accidentally use the cloud database. These commands do not copy local products/accounts into the cloud. For an existing real shop database, plan a backup/restore migration instead of starting with an empty database.
+
+### 7. Deploy and create the admin on the website
+
+Push the current changes. In Vercel, open **Deployments**, select a deployment containing the latest source and choose **Redeploy** from its menu. Deploy the backend and frontend and wait for both to show **Ready**. Repeat the relevant deployment whenever you change its environment variables; existing deployments keep their previous values. See [Vercel environment variables](https://vercel.com/docs/environment-variables/managing-environment-variables).
+
+Open `https://lee-pos-system.vercel.app/api/auth/setup`. Before registration, with the setup key enabled and no admin present, expect:
+
+```json
+{ "required": true, "enabled": true }
+```
+
+Open the frontend login page and select **Create your administrator account**, or open `https://lee-pos-system-nhwe.vercel.app/setup`. Enter your name, chosen login email, a new password of at least 12 characters and at most 72 UTF-8 bytes, confirmation, and the exact private setup key from the backend environment. Click **Create admin account**, then **Continue to sign in** and use your chosen email/password. An email inbox is not required for login, and this flow does not send a verification email.
+
+There is no default `admin@lee.local` account in website setup: the email you enter is your admin login. If an admin already exists, including a seeded or disabled admin, registration is closed. Do not delete accounts or shop data to reopen it. Sign in with the existing account; an authenticated admin can reset account passwords under **Users**. If all admin access is lost, contact the deployment/database owner for controlled recovery.
+
+After confirming login, delete `INITIAL_ADMIN_SETUP_TOKEN` from the backend's Vercel environment and redeploy the backend. Setup also closes automatically when an admin exists. Do not remove `JWT_SECRET` or `DATABASE_URL`.
+
+### 8. Configure the shop and cashier accounts
+
+As admin, open **Settings** and enter the shop name, address, phone, receipt footer, paper width and print preference. Add actual categories/products, prices, tax rates and opening stock in **Products**. Add cashiers through **Users → Add cashier**, using a different email and password for each person; they sign in with their own accounts. Password resets and enabling/disabling cashiers are also under Users.
+
+Run a controlled test sale, verify stock/history/reports, print a real receipt, then test PWA offline reload and reconnection with the app open. Sync every till before changing domain or updating. Never clear browser storage while sales remain unsynced. Complete the [cashier/hardware trial](docs/cashier-trial.md), configure database backups and verify restoration before relying on the system for real transactions. The API's login throttling uses in-memory per-IP counters; a serverless deployment needs appropriate shared/platform rate-limit protection before live use.
+
+### Deployment troubleshooting
+
+| Symptom                                                | Check / action                                                                                                                                                                                                               |
+| ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Cannot GET /` on the backend                          | Expected: the API has no homepage. Check `/api/health`, and use the frontend for the shop interface. Health is liveness only, not a database check.                                                                          |
+| `Cannot GET /auth/setup`                               | Frontend API base is missing `/api`, or the browser is running an older build. Correct `VITE_API_BASE_URL`, redeploy the frontend, then accept the app update or test in a private window.                                   |
+| Connection error / browser CORS error                  | Check frontend API URL, backend `WEB_ORIGIN`, HTTPS, backend availability and deployment protection. The allowed origin should be the exact frontend origin. The code normalizes a trailing slash, but use the values above. |
+| `/api/auth/setup` returns HTTP 500                     | Inspect backend Vercel runtime logs. Verify `DATABASE_URL`, provider access and completed migrations. Do not assume the cause from the generic message; share only redacted error text.                                      |
+| Setup status is `required: true, enabled: false`       | Configure `INITIAL_ADMIN_SETUP_TOKEN` on the backend, then redeploy.                                                                                                                                                         |
+| Setup status is `required: false, enabled: false`      | An admin already exists. Sign in with that account; changing the setup key will not reopen registration.                                                                                                                     |
+| Setup key is incorrect                                 | Enter the exact key saved on the backend for Production; redeploy after changing it. It is not the admin login password.                                                                                                     |
+| Old error still appears after a successful deployment  | Close Lee tabs/installed app, reopen and accept its update; try Ctrl+Shift+R or a private window. Do not clear storage with unsynced sales.                                                                                  |
+| `npm ci` fails with Windows `EPERM` for a `.node` file | Stop this project's dev/watch servers with Ctrl+C, then retry installation. Avoid stopping unrelated Node apps.                                                                                                              |
+| `prisma` is not recognized                             | An interrupted install can remove the command. Repair with successful `npm ci`, then `npm run db:generate`; do not continue migration commands after install failure.                                                        |
+
+Never include real credentials in this README. All credential examples are placeholders. Backups cover the server database, not unsynced browser queues. See the [readiness review](docs/deployment-readiness.md) for the earlier verification snapshot and remaining operational checks.
 
 ## Run locally
 
@@ -191,7 +355,7 @@ GitHub Actions provisions PostgreSQL and Chromium and runs these checks plus pro
 
 ## Deployment and scope
 
-See [deployment preparation](deploy/README.md). The Dockerfile builds migration, API, and Nginx gateway targets. The production Compose file keeps PostgreSQL/API private and starts the API after migrations. HTTPS certificates, hosting, and a domain are not provisioned automatically. The user requested deployment files only.
+See [Vercel configuration and admin setup](#vercel-configuration-and-admin-setup) for the hosted frontend/backend and managed database. The optional [Docker/VPS deployment guide](deploy/README.md) describes migration, API and Nginx gateway images, keeps PostgreSQL/API ports private, and starts the API after migrations. VPS hosting, domain registration and HTTPS certificates are not provisioned by the repository.
 
 API responses carry `Cache-Control: no-store` even without the gateway. Swagger is available in development/test and disabled in production. The runtime API container receives only its required configuration; initial account passwords are supplied only to the migration/seed service. See [deployment readiness review](docs/deployment-readiness.md) for verification results and remaining live-server checks.
 

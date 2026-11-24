@@ -14,6 +14,7 @@ export class ApiError extends Error {
   }
 }
 export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const savingSale = options.method === 'POST' && (path === '/sales' || path === '/sync/sales');
   let response: Response;
   try {
     response = await fetch(`${apiBaseUrl}${path}`, {
@@ -28,14 +29,21 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
       },
     });
   } catch {
-    throw new ApiError('Connection lost. Check your network and retry the same sale.', 0);
+    throw new ApiError(
+      savingSale
+        ? 'Connection lost. Check your network and retry the same sale.'
+        : 'Cannot connect to Lee’s server. Check your connection and try again. If this continues, contact your system developer.',
+      0,
+    );
   }
   let data;
   try {
     data = await response.json();
   } catch {
     throw new ApiError(
-      'The server is unavailable. Saved sales will retry automatically.',
+      savingSale
+        ? 'The server is unavailable. Saved sales will retry automatically.'
+        : 'Lee’s server returned an unexpected response. Please try again or contact your system developer.',
       response.ok ? 502 : response.status,
     );
   }

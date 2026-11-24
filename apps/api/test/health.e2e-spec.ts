@@ -15,7 +15,7 @@ describe('API health (HTTP integration)', () => {
       .useValue({})
       .compile();
     app = module.createNestApplication();
-    configureApp(app, 'http://localhost:5173');
+    configureApp(app, 'http://localhost:5173/');
     await app.init();
   });
 

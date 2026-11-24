@@ -10,7 +10,8 @@ export function configureApp(app: INestApplication, webOrigin: string): void {
     response.setHeader('Cache-Control', 'no-store');
     next();
   });
-  app.enableCors({ origin: webOrigin });
+  // Browser Origin headers never include a trailing slash or a page path.
+  app.enableCors({ origin: new URL(webOrigin).origin });
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
   );

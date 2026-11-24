@@ -1,6 +1,8 @@
 # Production deployment preparation
 
-These files prepare a single-server deployment. **Nothing has been published.** The user requested deployment files only. Use an owned server/domain and a valid HTTPS certificate before starting the gateway.
+This guide covers the optional Docker/VPS deployment. For the Vercel frontend/backend and Neon database installation, follow [Vercel configuration and admin setup in the main README](../README.md#vercel-configuration-and-admin-setup), including the exact URL settings, migrations, website admin registration and troubleshooting. Vercel uses dashboard environment variables; it does not load your local `deploy/.env` file.
+
+For this Docker setup, use an owned server/domain and a valid HTTPS certificate before starting the gateway.
 
 ## What runs
 
